@@ -1,6 +1,7 @@
 论文开题报告(20124115_王志浩).pdf
 AGENTS.md
 期中报告.md
+*.pt
 models/*.pt
 embeddings/
 data/
