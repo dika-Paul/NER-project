@@ -549,6 +549,8 @@ def train_ner_node(
         根据 GraphContext 中的 ner_model，
         选择合适的训练函数对模型进行训练。
     """
+    print(f"开始第{graph_state.iteration+1}轮训练：\n\n\n")
+
     ner_model = _get_context_ner_model(runtime)
 
     if isinstance(ner_model, BiLSTM_CRF):
