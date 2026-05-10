@@ -26,7 +26,6 @@ def initialize_node(graph_state: GraphState) -> dict:
     """
     _resolve_required_file(graph_state.train_path, "train_path")
     _resolve_required_file(graph_state.valid_path, "valid_path")
-    _resolve_required_file(graph_state.test_path, "test_path")
     _resolve_required_file(graph_state.unlabeled_pool_path,"unlabeled_pool_path",)
 
     return {

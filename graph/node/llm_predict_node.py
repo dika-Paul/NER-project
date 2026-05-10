@@ -1,21 +1,19 @@
-import json
-import re
 from typing import Any
 
-from langchain_core.messages import BaseMessage
 from langgraph.runtime import Runtime
 
 from graph.graph_state import GraphContext, GraphState
 
 
-JSON_FENCE_RE = re.compile(r"```(?:json)?\s*(.*?)\s*```", re.IGNORECASE | re.DOTALL)
 LLM_MAX_CONCURRENCY = 5
 
 
 def _get_context_value(runtime: Runtime[GraphContext], key: str) -> Any:
     context = getattr(runtime, "context", None)
     if context is None:
-        raise ValueError("runtime.context must provide prompt, llm, and entity_schema.")
+        raise ValueError(
+            "runtime.context must provide prompt, llm, output_parser, and entity_schema."
+        )
 
     if isinstance(context, dict):
         value = context.get(key)
@@ -27,66 +25,43 @@ def _get_context_value(runtime: Runtime[GraphContext], key: str) -> Any:
     return value
 
 
-def _message_content(output: Any) -> Any:
-    if isinstance(output, BaseMessage):
-        return output.content
-    if hasattr(output, "content"):
-        return output.content
-    return output
+def _to_plain_dict(value: Any) -> dict[str, Any] | None:
+    if isinstance(value, dict):
+        return value
+
+    if hasattr(value, "model_dump"):
+        dumped_value = value.model_dump()
+        if isinstance(dumped_value, dict):
+            return dumped_value
+
+    if hasattr(value, "dict"):
+        dumped_value = value.dict()
+        if isinstance(dumped_value, dict):
+            return dumped_value
+
+    return None
 
 
-def _stringify_content(content: Any) -> str:
-    if isinstance(content, str):
-        return content
-    if isinstance(content, list):
-        parts = []
-        for item in content:
-            if isinstance(item, dict) and "text" in item:
-                parts.append(str(item["text"]))
-            else:
-                parts.append(str(item))
-        return "\n".join(parts)
-    return str(content)
-
-
-def _parse_json_payload(output: Any) -> Any:
-    content = _message_content(output)
-    if isinstance(content, (dict, list)):
-        return content
-
-    text = _stringify_content(content).strip()
-    fenced_match = JSON_FENCE_RE.search(text)
-    if fenced_match:
-        text = fenced_match.group(1).strip()
-
-    try:
-        return json.loads(text)
-    except json.JSONDecodeError:
-        decoder = json.JSONDecoder()
-        for index, char in enumerate(text):
-            if char not in "[{":
-                continue
-            try:
-                payload, _ = decoder.raw_decode(text[index:])
-                return payload
-            except json.JSONDecodeError:
-                continue
-
-    raise ValueError("LLM output must be valid JSON with an entities list.")
-
-
-def _extract_entities(output: Any) -> list[Any]:
-    payload = _parse_json_payload(output)
-    if isinstance(payload, dict):
+def _entities_from_parsed_output(output: Any) -> list[dict[str, Any]]:
+    payload = _to_plain_dict(output)
+    if payload is not None:
         entities = payload.get("entities", [])
-    elif isinstance(payload, list):
-        entities = payload
+    elif hasattr(output, "entities"):
+        entities = getattr(output, "entities")
     else:
-        raise ValueError("LLM output JSON must be an object or a list.")
+        raise ValueError("Parsed LLM output must provide an entities list.")
 
     if not isinstance(entities, list):
-        raise ValueError("LLM output entities must be a list.")
-    return entities
+        raise ValueError("Parsed LLM output entities must be a list.")
+
+    normalized_entities = []
+    for entity in entities:
+        entity_dict = _to_plain_dict(entity)
+        if entity_dict is None:
+            continue
+        normalized_entities.append(entity_dict)
+
+    return normalized_entities
 
 
 def _coerce_int(value: Any) -> int | None:
@@ -244,9 +219,11 @@ def _predict_spans(
 
     prompt = _get_context_value(runtime, "prompt")
     llm = _get_context_value(runtime, llm_context_key)
+    output_parser = _get_context_value(runtime, "output_parser")
     entity_schema = _validate_entity_schema(_get_context_value(runtime, "entity_schema"))
 
-    chain = prompt | llm
+    chain = prompt | llm | output_parser
+    format_instructions = output_parser.get_format_instructions()
     llm_outputs = _copy_llm_outputs(graph_state.llm_outputs)
     prediction_requests = []
 
@@ -268,6 +245,7 @@ def _predict_spans(
                     "text": text,
                     "tokens": [str(token) for token in tokens],
                     "entity_schema": entity_schema,
+                    "format_instructions": format_instructions,
                 },
             )
         )
@@ -284,7 +262,7 @@ def _predict_spans(
         prediction_requests,
         responses,
     ):
-        raw_entities = _extract_entities(response)
+        raw_entities = _entities_from_parsed_output(response)
         entities = _normalize_entities(raw_entities, text, entity_schema)
 
         sample_outputs = dict(llm_outputs.get(sample_id, {}))

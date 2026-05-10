@@ -1,9 +1,76 @@
 from dataclasses import dataclass, field
 from typing import Any, TypedDict, Annotated
 
+from pydantic import BaseModel, Field
 from langchain.chat_models import BaseChatModel
-from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.messages import SystemMessage
+from langchain_core.output_parsers import PydanticOutputParser
+from langchain_core.prompts import ChatPromptTemplate, HumanMessagePromptTemplate
 from torch import nn
+
+
+class EntitySpan(BaseModel):
+    type: str = Field(description="Entity type, must be one of entity_schema")
+    text: str = Field(description="Exact entity text copied from original text")
+    start: int = Field(description="Start character offset in text")
+    end: int = Field(description="Exclusive end character offset in text")
+
+
+class EntityExtractionOutput(BaseModel):
+    entities: list[EntitySpan] = Field(default_factory=list)
+
+
+entity_output_parser = PydanticOutputParser(pydantic_object=EntityExtractionOutput)
+
+
+llm_prompt = ChatPromptTemplate.from_messages([
+    SystemMessage(
+        """
+        You are a strict named entity extraction assistant for materials science literature.
+
+        Your task is to extract domain entities from the given text.
+        Only extract entities whose type is included in the provided entity_schema.
+
+        Rules:
+        1. Return only valid JSON. Do not use Markdown. Do not add explanations.
+        2. The output must be an object with exactly one key: "entities".
+        3. Each entity must have: "type", "text", "start", "end".
+        4. "text" must be copied exactly from the original text.
+        5. "start" and "end" are character offsets in the original text. "end" is exclusive.
+        6. Do not invent entities. If uncertain, omit the entity.
+        7. Do not extract overlapping duplicate entities.
+        8. Prefer complete entity spans over partial spans.
+        9. Keep entities sorted by "start".
+        10. If no entity is found, return {{"entities": []}}.
+
+        Common materials-domain label meanings, when applicable:
+        - MAT: material names, chemical formulas, compounds, composites, dopants.
+        - PRO: material properties, physical/chemical properties, performance descriptors.
+        - CMT: characterization or measurement methods, instruments, experimental techniques.
+        - DSC: material descriptors, morphology, structure, phase, form, sample type.
+
+        Use only labels that appear in entity_schema.
+        """
+    ),
+    HumanMessagePromptTemplate.from_template(
+        """
+        sample_id:
+        {sample_id}
+
+        entity_schema:
+        {entity_schema}
+
+        tokens:
+        {tokens}
+
+        text:
+        {text}
+
+        You must format your output according to these instructions:
+        {format_instructions}
+        """
+    )
+])
 
 
 def add_metrics(old: Any, new: Any) -> Any:
@@ -21,9 +88,7 @@ def add_metrics(old: Any, new: Any) -> Any:
 class InputState:
     train_path: str = field(default_factory=str)
     valid_path: str = field(default_factory=str)
-    test_path: str = field(default_factory=str)
     unlabeled_pool_path: str = field(default_factory=str)
-    ner_model_path: str = field(default_factory=str)
 
 
 @dataclass
@@ -43,10 +108,6 @@ class GraphState:
     # 验证集文件路径。
     # 内容格式与 train_path 相同，用于 train_ner_node 在每轮训练中选择本轮最佳 checkpoint。
     valid_path: str = field(default_factory=str)
-
-    # 测试集文件路径。
-    # 内容格式与 train_path 相同；initialize_node 只校验存在性，最终测试评估节点再使用。
-    test_path: str = field(default_factory=str)
 
     # 未标注文本池路径。
     # 当前实现要求为 JSONL，每行一个样本，例如：
@@ -212,6 +273,9 @@ class GraphState:
 class GraphContext(TypedDict, total=False):
     # 控制模型输出的提示词模板
     prompt: ChatPromptTemplate
+
+    # 输出解释器
+    output_parser: PydanticOutputParser
 
     # NER模型
     ner_model: nn.Module
