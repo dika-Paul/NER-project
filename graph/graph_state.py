@@ -6,7 +6,6 @@ from langchain.chat_models import BaseChatModel
 from langchain_core.messages import SystemMessage
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.prompts import ChatPromptTemplate, HumanMessagePromptTemplate
-from torch import nn
 
 
 class EntitySpan(BaseModel):
@@ -282,8 +281,9 @@ class GraphContext(TypedDict, total=False):
     # 输出解释器
     output_parser: PydanticOutputParser
 
-    # NER模型
-    ner_model: nn.Module
+    # NER 模型类型。
+    # 可选值："bilstm_crf"、"bert_bilstm_crf"、"bert_softmax"、"matscibert_softmax"。
+    ner_model: str
 
     # 实体分类
     entity_schema: list[str]

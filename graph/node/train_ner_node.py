@@ -41,6 +41,12 @@ from utils.bilstm_crf.data_utils import (
 
 
 GRAPH_DIR = Path(__file__).resolve().parents[1]
+SUPPORTED_NER_MODEL_TYPES = {
+    "bilstm_crf",
+    "bert_bilstm_crf",
+    "bert_softmax",
+    "matscibert_softmax",
+}
 
 
 def _checkpoint_path(model_type: str, iteration: int) -> Path:
@@ -523,10 +529,10 @@ def _train_bert_bilstm_crf(
     }
 
 
-def _get_context_ner_model(runtime: Runtime[GraphContext]) -> Any:
+def _get_context_ner_model(runtime: Runtime[GraphContext]) -> str:
     context = getattr(runtime, "context", None)
     if context is None:
-        raise ValueError("runtime.context must provide ner_model.")
+        raise ValueError("runtime.context must provide ner_model as a string.")
 
     if isinstance(context, dict):
         ner_model = context.get("ner_model")
@@ -534,7 +540,24 @@ def _get_context_ner_model(runtime: Runtime[GraphContext]) -> Any:
         ner_model = getattr(context, "ner_model", None)
 
     if ner_model is None:
-        raise ValueError("runtime.context must provide ner_model.")
+        raise ValueError("runtime.context must provide ner_model as a string.")
+
+    if not isinstance(ner_model, str):
+        raise ValueError(
+            "runtime.context ner_model must be a string, "
+            f"got {type(ner_model).__name__}."
+        )
+
+    ner_model = ner_model.strip().lower()
+    if not ner_model:
+        raise ValueError("runtime.context ner_model cannot be empty.")
+
+    if ner_model not in SUPPORTED_NER_MODEL_TYPES:
+        supported_types = ", ".join(sorted(SUPPORTED_NER_MODEL_TYPES))
+        raise ValueError(
+            f"Unsupported ner_model type: {ner_model}. "
+            f"Supported values are: {supported_types}."
+        )
 
     return ner_model
 
@@ -553,19 +576,19 @@ def train_ner_node(
 
     ner_model = _get_context_ner_model(runtime)
 
-    if isinstance(ner_model, BiLSTM_CRF):
+    if ner_model == "bilstm_crf":
         result = _train_bilstm_crf(
             graph_state.train_path,
             graph_state.valid_path,
             graph_state.iteration,
         )
-    elif isinstance(ner_model, BertBiLstmCrfNER):
+    elif ner_model == "bert_bilstm_crf":
         result = _train_bert_bilstm_crf(
             graph_state.train_path,
             graph_state.valid_path,
             graph_state.iteration,
         )
-    elif isinstance(ner_model, MatSciBertSoftmaxNER):
+    elif ner_model == "matscibert_softmax":
         result = _train_bert_softmax(
             graph_state.train_path,
             graph_state.valid_path,
@@ -574,7 +597,7 @@ def train_ner_node(
             model_name="m3rg-iitd/matscibert",
             model_cls=MatSciBertSoftmaxNER,
         )
-    elif isinstance(ner_model, BertSoftmaxNER):
+    elif ner_model == "bert_softmax":
         result = _train_bert_softmax(
             graph_state.train_path,
             graph_state.valid_path,
@@ -584,7 +607,11 @@ def train_ner_node(
             model_cls=BertSoftmaxNER,
         )
     else:
-        raise ValueError(f"Unsupported ner_model type: {type(ner_model).__name__}")
+        supported_types = ", ".join(sorted(SUPPORTED_NER_MODEL_TYPES))
+        raise ValueError(
+            f"Unsupported ner_model type: {ner_model}. "
+            f"Supported values are: {supported_types}."
+        )
 
     return {
         "ner_model_path": result["model_path"],

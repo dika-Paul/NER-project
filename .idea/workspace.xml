@@ -4,10 +4,9 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="2f758aa7-4d7d-42ab-81f1-fde8f131d485" name="更改" comment="使用parser来规范输出">
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+    <list default="true" id="2f758aa7-4d7d-42ab-81f1-fde8f131d485" name="更改" comment="修改">
       <change beforePath="$PROJECT_DIR$/graph/graph_state.py" beforeDir="false" afterPath="$PROJECT_DIR$/graph/graph_state.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/graph/node/train_ner_node.py" beforeDir="false" afterPath="$PROJECT_DIR$/graph/node/train_ner_node.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -79,6 +78,7 @@
 }]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="E:\大学学习\毕设\26毕设\NRE_project" />
       <recent name="E:\大学学习\毕设\26毕设\NRE_project\test" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
@@ -173,7 +173,7 @@
       <workItem from="1778306139906" duration="699000" />
       <workItem from="1778306986198" duration="25753000" />
       <workItem from="1778347094784" duration="8537000" />
-      <workItem from="1778388928227" duration="34804000" />
+      <workItem from="1778388928227" duration="36340000" />
     </task>
     <task id="LOCAL-00001" summary="毕业设计NER算法设计存档">
       <option name="closed" value="true" />
@@ -271,7 +271,23 @@
       <option name="project" value="LOCAL" />
       <updated>1778425771747</updated>
     </task>
-    <option name="localTasksCounter" value="13" />
+    <task id="LOCAL-00013" summary="更新忽略config文件">
+      <option name="closed" value="true" />
+      <created>1778426970257</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1778426970257</updated>
+    </task>
+    <task id="LOCAL-00014" summary="修改">
+      <option name="closed" value="true" />
+      <created>1778427146590</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1778427146590</updated>
+    </task>
+    <option name="localTasksCounter" value="15" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -300,7 +316,9 @@
     <MESSAGE value="更新state" />
     <MESSAGE value="小修改" />
     <MESSAGE value="使用parser来规范输出" />
-    <option name="LAST_COMMIT_MESSAGE" value="使用parser来规范输出" />
+    <MESSAGE value="更新忽略config文件" />
+    <MESSAGE value="修改" />
+    <option name="LAST_COMMIT_MESSAGE" value="修改" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/NRE_project$build_matscholar_unlabeled.coverage" NAME="build_matscholar_unlabeled 覆盖结果" MODIFIED="1778333989862" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/data/GPT_data_source" />
