@@ -4,7 +4,8 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="2f758aa7-4d7d-42ab-81f1-fde8f131d485" name="更改" comment="更新图状态文件">
+    <list default="true" id="2f758aa7-4d7d-42ab-81f1-fde8f131d485" name="更改" comment="使用parser来规范输出">
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/graph/graph_state.py" beforeDir="false" afterPath="$PROJECT_DIR$/graph/graph_state.py" afterDir="false" />
     </list>
@@ -20,8 +21,8 @@
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
       <list>
-        <option value="Jupyter Notebook" />
         <option value="Python Script" />
+        <option value="Jupyter Notebook" />
       </list>
     </option>
   </component>
@@ -55,27 +56,27 @@
     <option name="sortByType" value="true" />
     <option name="sortKey" value="BY_TYPE" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;Python.build_matscholar_unlabeled.executor&quot;: &quot;Run&quot;,
-    &quot;Python.collect_openalex_materials_abstracts_to_excel.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.MCP Project settings loaded&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
-    &quot;codeWithMe.voiceChat.enabledByDefault&quot;: &quot;false&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;master&quot;,
-    &quot;last_opened_file_path&quot;: &quot;E:/大学学习/毕设/26毕设/NRE_project/test&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;ml.llm.LLMConfigurable&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Python.build_matscholar_unlabeled.executor": "Run",
+    "Python.collect_openalex_materials_abstracts_to_excel.executor": "Run",
+    "RunOnceActivity.MCP Project settings loaded": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "codeWithMe.voiceChat.enabledByDefault": "false",
+    "git-widget-placeholder": "master",
+    "last_opened_file_path": "E:/大学学习/毕设/26毕设/NRE_project",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "ml.llm.LLMConfigurable",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="E:\大学学习\毕设\26毕设\NRE_project\test" />
@@ -172,7 +173,7 @@
       <workItem from="1778306139906" duration="699000" />
       <workItem from="1778306986198" duration="25753000" />
       <workItem from="1778347094784" duration="8537000" />
-      <workItem from="1778388928227" duration="30383000" />
+      <workItem from="1778388928227" duration="34804000" />
     </task>
     <task id="LOCAL-00001" summary="毕业设计NER算法设计存档">
       <option name="closed" value="true" />
@@ -230,7 +231,47 @@
       <option name="project" value="LOCAL" />
       <updated>1778355832890</updated>
     </task>
-    <option name="localTasksCounter" value="8" />
+    <task id="LOCAL-00008" summary="完成整个graph的构建">
+      <option name="closed" value="true" />
+      <created>1778422543472</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1778422543472</updated>
+    </task>
+    <task id="LOCAL-00009" summary="更新state">
+      <option name="closed" value="true" />
+      <created>1778422556857</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1778422556857</updated>
+    </task>
+    <task id="LOCAL-00010" summary="更新state">
+      <option name="closed" value="true" />
+      <created>1778422561401</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1778422561401</updated>
+    </task>
+    <task id="LOCAL-00011" summary="小修改">
+      <option name="closed" value="true" />
+      <created>1778422900806</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1778422900806</updated>
+    </task>
+    <task id="LOCAL-00012" summary="使用parser来规范输出">
+      <option name="closed" value="true" />
+      <created>1778425771747</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1778425771747</updated>
+    </task>
+    <option name="localTasksCounter" value="13" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -255,17 +296,11 @@
     <MESSAGE value="一些修改" />
     <MESSAGE value="添加参考文献" />
     <MESSAGE value="更新图状态文件" />
-    <option name="LAST_COMMIT_MESSAGE" value="更新图状态文件" />
-  </component>
-  <component name="XDebuggerManager">
-    <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/graph/node/llm_predict_node.py</url>
-          <option name="timeStamp" value="5" />
-        </line-breakpoint>
-      </breakpoints>
-    </breakpoint-manager>
+    <MESSAGE value="完成整个graph的构建" />
+    <MESSAGE value="更新state" />
+    <MESSAGE value="小修改" />
+    <MESSAGE value="使用parser来规范输出" />
+    <option name="LAST_COMMIT_MESSAGE" value="使用parser来规范输出" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/NRE_project$build_matscholar_unlabeled.coverage" NAME="build_matscholar_unlabeled 覆盖结果" MODIFIED="1778333989862" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/data/GPT_data_source" />

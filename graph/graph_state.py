@@ -44,10 +44,13 @@ llm_prompt = ChatPromptTemplate.from_messages([
         10. If no entity is found, return {{"entities": []}}.
 
         Common materials-domain label meanings, when applicable:
-        - MAT: material names, chemical formulas, compounds, composites, dopants.
+        - MAT: inorganic materials, material names, chemical formulas, compounds, composites, dopants.
         - PRO: material properties, physical/chemical properties, performance descriptors.
         - CMT: characterization or measurement methods, instruments, experimental techniques.
-        - DSC: material descriptors, morphology, structure, phase, form, sample type.
+        - DSC: sample/material descriptors, morphology, structure, form, sample type.
+        - APL: material applications, devices, use cases, functional application targets.
+        - SMT: synthesis methods, preparation methods, processing routes.
+        - SPL: symmetry labels, phase labels, crystal phases, structural phase names.
 
         Use only labels that appear in entity_schema.
         """
@@ -71,6 +74,8 @@ llm_prompt = ChatPromptTemplate.from_messages([
         """
     )
 ])
+
+entity_schema = ["MAT", "SPL", "DSC", "PRO", "APL", "SMT", "CMT"]
 
 
 def add_metrics(old: Any, new: Any) -> Any:
