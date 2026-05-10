@@ -2,6 +2,7 @@
 AGENTS.md
 期中报告.md
 *.pt
+*.yaml
 models/*.pt
 embeddings/
 data/
