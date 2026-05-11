@@ -6,11 +6,14 @@
   <component name="ChangeListManager">
     <list default="true" id="2f758aa7-4d7d-42ab-81f1-fde8f131d485" name="更改" comment="修改bug">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/graph/graph.py" beforeDir="false" afterPath="$PROJECT_DIR$/graph/graph.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/graph/graph_state.py" beforeDir="false" afterPath="$PROJECT_DIR$/graph/graph_state.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/graph/node/add_train_data_node.py" beforeDir="false" afterPath="$PROJECT_DIR$/graph/node/add_train_data_node.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/graph/node/get_unlabeled_data_node.py" beforeDir="false" afterPath="$PROJECT_DIR$/graph/node/get_unlabeled_data_node.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/graph/node/initialize_node.py" beforeDir="false" afterPath="$PROJECT_DIR$/graph/node/initialize_node.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/graph/node/llm_predict_node.py" beforeDir="false" afterPath="$PROJECT_DIR$/graph/node/llm_predict_node.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/graph/node/train_ner_node.py" beforeDir="false" afterPath="$PROJECT_DIR$/graph/node/train_ner_node.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/graph/test.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/graph/test.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test/test_bert_bilstm_crf.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/test/test_bert_bilstm_crf.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/train/train_bert-bilstm-crf.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/train/train_bert-bilstm-crf.ipynb" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -178,7 +181,7 @@
       <workItem from="1778306986198" duration="25753000" />
       <workItem from="1778347094784" duration="8537000" />
       <workItem from="1778388928227" duration="47535000" />
-      <workItem from="1778440587547" duration="2360000" />
+      <workItem from="1778440587547" duration="16658000" />
     </task>
     <task id="LOCAL-00001" summary="毕业设计NER算法设计存档">
       <option name="closed" value="true" />
@@ -300,7 +303,15 @@
       <option name="project" value="LOCAL" />
       <updated>1778428500592</updated>
     </task>
-    <option name="localTasksCounter" value="16" />
+    <task id="LOCAL-00016" summary="修改bug">
+      <option name="closed" value="true" />
+      <created>1778471117058</created>
+      <option name="number" value="00016" />
+      <option name="presentableId" value="LOCAL-00016" />
+      <option name="project" value="LOCAL" />
+      <updated>1778471117058</updated>
+    </task>
+    <option name="localTasksCounter" value="17" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

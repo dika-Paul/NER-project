@@ -157,7 +157,7 @@ class GraphState:
     # 每轮从未标注池抽取的比例，取值范围为 (0, 1]。
     # get_unlabeled_data_node 按全量未标注池计算 ceil(total_pool_size * batch_size)。
     # 注意：这不是 DataLoader 的 batch size。
-    batch_size: float = 0.05
+    batch_size: float = 0.25
 
     # NER 输出与 primary LLM 输出之间的编辑距离比例阈值。
     # 后续相似度节点按论文公式计算 distance_ratio = edit_distance / len(reference_string)。
@@ -192,8 +192,8 @@ class GraphState:
     # 外层 key 是样本 id；内层不再保存 sample_id，方便用 id 直接索引样本内容。
     current_batch: dict[str, dict[str, Any]] = field(default_factory=dict)
 
-    # 已经被抽取过的未标注样本 id 列表。
-    # get_unlabeled_data_node 读取并追加本轮抽中的 sample_id，避免后续轮次重复抽样。
+    # 已经成功加入训练集的未标注样本 id 列表。
+    # get_unlabeled_data_node 只读取该列表；add_train_data_node 在样本实际写入训练集后追加。
     # 结构：[sample_id, ...]
     processed_sample_ids: list[str] = field(default_factory=list)
 

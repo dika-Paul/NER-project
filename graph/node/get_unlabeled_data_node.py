@@ -60,7 +60,7 @@ def get_unlabeled_data_node(graph_state: GraphState) -> dict:
     节点功能：
         从文本池中获取一定量的未标注样本：
         1. 根据抽取百分比从文本池中随机获取样本
-        2. 通过 processed_sample_ids 对样本统计，筛去已经取过的样本，未取过样本添加进去
+        2. 通过 processed_sample_ids 筛去已经成功加入训练集的样本
         3. 将本次提取样本整理成 current_batch 形式
     """
     if not 0 < graph_state.batch_size <= 1:
@@ -68,11 +68,9 @@ def get_unlabeled_data_node(graph_state: GraphState) -> dict:
 
     samples = _load_unlabeled_pool(graph_state.unlabeled_pool_path)
     if not samples:
-        return {
-            "current_batch": {},
-            "processed_sample_ids": list(graph_state.processed_sample_ids),
-        }
+        return {"current_batch": {}}
 
+    # processed_sample_ids means samples already appended to the train set.
     processed_ids = list(graph_state.processed_sample_ids)
     processed_id_set = set(processed_ids)
 
@@ -81,10 +79,7 @@ def get_unlabeled_data_node(graph_state: GraphState) -> dict:
     ]
 
     if not available_samples:
-        return {
-            "current_batch": {},
-            "processed_sample_ids": processed_ids,
-        }
+        return {"current_batch": {}}
 
     sample_count = max(1, math.ceil(len(samples) * graph_state.batch_size))
     sample_count = min(sample_count, len(available_samples))
@@ -99,10 +94,4 @@ def get_unlabeled_data_node(graph_state: GraphState) -> dict:
             key: value for key, value in sample.items() if key != "sample_id"
         }
 
-    selected_sample_ids = list(current_batch.keys())
-    updated_processed_ids = processed_ids + selected_sample_ids
-
-    return {
-        "current_batch": current_batch,
-        "processed_sample_ids": updated_processed_ids,
-    }
+    return {"current_batch": current_batch}

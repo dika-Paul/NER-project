@@ -101,18 +101,27 @@ def _get_primary_entities(graph_state: GraphState, sample_id: str) -> list[Any] 
 
 def _get_accepted_bio_sequences(
     graph_state: GraphState,
-) -> list[list[tuple[str, str]]]:
+) -> list[tuple[str, list[tuple[str, str]]]]:
     accepted_sequences = []
+    processed_id_set = set(graph_state.processed_sample_ids)
+    accepted_id_set = set()
 
     for sample_id, sample in graph_state.current_batch.items():
+        if sample_id in processed_id_set or sample_id in accepted_id_set:
+            continue
+
         decision = graph_state.decision_records.get(sample_id)
 
         if decision == ACCEPT_NER:
             bio_sequence = graph_state.ner_bio_results.get(sample_id)
             if bio_sequence:
                 accepted_sequences.append(
-                    [(str(token), str(label)) for token, label in bio_sequence]
+                    (
+                        sample_id,
+                        [(str(token), str(label)) for token, label in bio_sequence],
+                    )
                 )
+                accepted_id_set.add(sample_id)
             continue
 
         if decision != ACCEPT_LLM_CONSENSUS:
@@ -132,7 +141,8 @@ def _get_accepted_bio_sequences(
             entities=entities,
         )
         if bio_sequence:
-            accepted_sequences.append(bio_sequence)
+            accepted_sequences.append((sample_id, bio_sequence))
+            accepted_id_set.add(sample_id)
 
     return accepted_sequences
 
@@ -177,6 +187,22 @@ def add_train_data_node(graph_state: GraphState) -> dict:
     """
     accepted_bio_sequences = _get_accepted_bio_sequences(graph_state)
     if accepted_bio_sequences:
-        _append_bio_sequences(graph_state.train_path, accepted_bio_sequences)
+        _append_bio_sequences(
+            graph_state.train_path,
+            [bio_sequence for _, bio_sequence in accepted_bio_sequences],
+        )
+
+        processed_sample_ids = list(graph_state.processed_sample_ids)
+        processed_id_set = set(processed_sample_ids)
+        for sample_id, _ in accepted_bio_sequences:
+            if sample_id in processed_id_set:
+                continue
+            processed_sample_ids.append(sample_id)
+            processed_id_set.add(sample_id)
+
+        return {
+            "train_path": graph_state.train_path,
+            "processed_sample_ids": processed_sample_ids,
+        }
 
     return {"train_path": graph_state.train_path}

@@ -1,5 +1,6 @@
 from typing import Any
 
+from langchain_core.output_parsers import JsonOutputParser
 from langgraph.runtime import Runtime
 
 from graph.graph_state import GraphContext, GraphState
@@ -51,25 +52,38 @@ def _samples_from_parsed_output(output: Any) -> list[dict[str, Any]]:
     elif hasattr(output, "samples"):
         samples = getattr(output, "samples")
     else:
-        raise ValueError("Parsed LLM output must provide a samples list.")
+        return []
 
     if not isinstance(samples, list):
-        raise ValueError("Parsed LLM output samples must be a list.")
+        return []
 
     normalized_samples = []
     for sample in samples:
         sample_dict = _to_plain_dict(sample)
         if sample_dict is None:
             continue
+        if not _is_complete_sample_output(sample_dict):
+            continue
         normalized_samples.append(sample_dict)
 
     return normalized_samples
 
 
+def _is_complete_sample_output(sample_output: dict[str, Any]) -> bool:
+    if not sample_output:
+        return False
+
+    sample_id = str(sample_output.get("sample_id", "")).strip()
+    if not sample_id:
+        return False
+
+    return isinstance(sample_output.get("entities"), list)
+
+
 def _entities_from_sample_output(sample_output: dict[str, Any]) -> list[dict[str, Any]]:
     entities = sample_output.get("entities", [])
     if not isinstance(entities, list):
-        raise ValueError("Parsed LLM output sample entities must be a list.")
+        return []
 
     normalized_entities = []
     for entity in entities:
@@ -243,7 +257,7 @@ def _predict_spans(
     output_parser = _get_context_value(runtime, "output_parser")
     entity_schema = _validate_entity_schema(_get_context_value(runtime, "entity_schema"))
 
-    chain = prompt | llm | output_parser
+    chain = prompt | llm | JsonOutputParser()
     format_instructions = output_parser.get_format_instructions()
     llm_outputs = _copy_llm_outputs(graph_state.llm_outputs)
     prediction_samples = []
@@ -281,9 +295,13 @@ def _predict_spans(
     responses = chain.batch(
         prediction_requests,
         config={"max_concurrency": LLM_MAX_CONCURRENCY},
+        return_exceptions=True,
     )
 
     for batch_samples, response in zip(prediction_batches, responses):
+        if isinstance(response, BaseException):
+            continue
+
         input_samples_by_id = {
             str(sample["sample_id"]): sample
             for sample in batch_samples
@@ -299,17 +317,14 @@ def _predict_spans(
                 continue
             response_samples_by_id[response_sample_id] = response_sample
 
-        for sample_id, input_sample in input_samples_by_id.items():
-            response_sample = response_samples_by_id.get(sample_id)
-            if response_sample is None:
-                entities = []
-            else:
-                raw_entities = _entities_from_sample_output(response_sample)
-                entities = _normalize_entities(
-                    raw_entities,
-                    str(input_sample["text"]),
-                    entity_schema,
-                )
+        for sample_id, response_sample in response_samples_by_id.items():
+            input_sample = input_samples_by_id[sample_id]
+            raw_entities = _entities_from_sample_output(response_sample)
+            entities = _normalize_entities(
+                raw_entities,
+                str(input_sample["text"]),
+                entity_schema,
+            )
 
             sample_outputs = dict(llm_outputs.get(sample_id, {}))
             sample_outputs[output_key] = {"entities": entities}
