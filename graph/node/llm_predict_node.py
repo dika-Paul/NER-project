@@ -5,7 +5,9 @@ from langgraph.runtime import Runtime
 from graph.graph_state import GraphContext, GraphState
 
 
-LLM_MAX_CONCURRENCY = 5
+LLM_MAX_CONCURRENCY = 6
+# Number of samples sent to the LLM in a single structured extraction request.
+LLM_REQUEST_BATCH_SIZE = 30
 
 
 def _get_context_value(runtime: Runtime[GraphContext], key: str) -> Any:
@@ -42,17 +44,32 @@ def _to_plain_dict(value: Any) -> dict[str, Any] | None:
     return None
 
 
-def _entities_from_parsed_output(output: Any) -> list[dict[str, Any]]:
+def _samples_from_parsed_output(output: Any) -> list[dict[str, Any]]:
     payload = _to_plain_dict(output)
     if payload is not None:
-        entities = payload.get("entities", [])
-    elif hasattr(output, "entities"):
-        entities = getattr(output, "entities")
+        samples = payload.get("samples", [])
+    elif hasattr(output, "samples"):
+        samples = getattr(output, "samples")
     else:
-        raise ValueError("Parsed LLM output must provide an entities list.")
+        raise ValueError("Parsed LLM output must provide a samples list.")
 
+    if not isinstance(samples, list):
+        raise ValueError("Parsed LLM output samples must be a list.")
+
+    normalized_samples = []
+    for sample in samples:
+        sample_dict = _to_plain_dict(sample)
+        if sample_dict is None:
+            continue
+        normalized_samples.append(sample_dict)
+
+    return normalized_samples
+
+
+def _entities_from_sample_output(sample_output: dict[str, Any]) -> list[dict[str, Any]]:
+    entities = sample_output.get("entities", [])
     if not isinstance(entities, list):
-        raise ValueError("Parsed LLM output entities must be a list.")
+        raise ValueError("Parsed LLM output sample entities must be a list.")
 
     normalized_entities = []
     for entity in entities:
@@ -62,6 +79,10 @@ def _entities_from_parsed_output(output: Any) -> list[dict[str, Any]]:
         normalized_entities.append(entity_dict)
 
     return normalized_entities
+
+
+def _chunked(items: list[Any], size: int) -> list[list[Any]]:
+    return [items[index:index + size] for index in range(0, len(items), size)]
 
 
 def _coerce_int(value: Any) -> int | None:
@@ -225,7 +246,7 @@ def _predict_spans(
     chain = prompt | llm | output_parser
     format_instructions = output_parser.get_format_instructions()
     llm_outputs = _copy_llm_outputs(graph_state.llm_outputs)
-    prediction_requests = []
+    prediction_samples = []
 
     for sample_id, sample in graph_state.current_batch.items():
         if not sample_filter(sample_id):
@@ -236,38 +257,63 @@ def _predict_spans(
         if not isinstance(tokens, list):
             raise ValueError(f"current_batch sample {sample_id} tokens must be a list.")
 
-        prediction_requests.append(
-            (
-                sample_id,
-                text,
-                {
-                    "sample_id": sample_id,
-                    "text": text,
-                    "tokens": [str(token) for token in tokens],
-                    "entity_schema": entity_schema,
-                    "format_instructions": format_instructions,
-                },
-            )
+        prediction_samples.append(
+            {
+                "sample_id": sample_id,
+                "text": text,
+                "tokens": [str(token) for token in tokens],
+            }
         )
 
-    if not prediction_requests:
+    if not prediction_samples:
         return {"llm_outputs": llm_outputs}
 
+    prediction_batches = _chunked(prediction_samples, LLM_REQUEST_BATCH_SIZE)
+    prediction_requests = [
+        {
+            "samples": batch_samples,
+            "entity_schema": entity_schema,
+            "format_instructions": format_instructions,
+        }
+        for batch_samples in prediction_batches
+    ]
+
     responses = chain.batch(
-        [request_input for _, _, request_input in prediction_requests],
+        prediction_requests,
         config={"max_concurrency": LLM_MAX_CONCURRENCY},
     )
 
-    for (sample_id, text, _request_input), response in zip(
-        prediction_requests,
-        responses,
-    ):
-        raw_entities = _entities_from_parsed_output(response)
-        entities = _normalize_entities(raw_entities, text, entity_schema)
+    for batch_samples, response in zip(prediction_batches, responses):
+        input_samples_by_id = {
+            str(sample["sample_id"]): sample
+            for sample in batch_samples
+        }
+        response_samples = _samples_from_parsed_output(response)
+        response_samples_by_id = {}
 
-        sample_outputs = dict(llm_outputs.get(sample_id, {}))
-        sample_outputs[output_key] = {"entities": entities}
-        llm_outputs[sample_id] = sample_outputs
+        for response_sample in response_samples:
+            response_sample_id = str(response_sample.get("sample_id", "")).strip()
+            if response_sample_id not in input_samples_by_id:
+                continue
+            if response_sample_id in response_samples_by_id:
+                continue
+            response_samples_by_id[response_sample_id] = response_sample
+
+        for sample_id, input_sample in input_samples_by_id.items():
+            response_sample = response_samples_by_id.get(sample_id)
+            if response_sample is None:
+                entities = []
+            else:
+                raw_entities = _entities_from_sample_output(response_sample)
+                entities = _normalize_entities(
+                    raw_entities,
+                    str(input_sample["text"]),
+                    entity_schema,
+                )
+
+            sample_outputs = dict(llm_outputs.get(sample_id, {}))
+            sample_outputs[output_key] = {"entities": entities}
+            llm_outputs[sample_id] = sample_outputs
 
     return {"llm_outputs": llm_outputs}
 

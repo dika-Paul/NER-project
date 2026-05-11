@@ -10,16 +10,30 @@ from langchain_core.prompts import ChatPromptTemplate, HumanMessagePromptTemplat
 
 class EntitySpan(BaseModel):
     type: str = Field(description="Entity type, must be one of entity_schema")
-    text: str = Field(description="Exact entity text copied from original text")
-    start: int = Field(description="Start character offset in text")
-    end: int = Field(description="Exclusive end character offset in text")
+    text: str | None = Field(
+        default=None,
+        description="Exact entity text copied from original text",
+    )
+    start: int | None = Field(
+        default=None,
+        description="Start character offset in text",
+    )
+    end: int | None = Field(
+        default=None,
+        description="Exclusive end character offset in text",
+    )
 
 
-class EntityExtractionOutput(BaseModel):
+class SampleEntityExtractionOutput(BaseModel):
+    sample_id: str = Field(description="The sample_id of the input sample")
     entities: list[EntitySpan] = Field(default_factory=list)
 
 
-entity_output_parser = PydanticOutputParser(pydantic_object=EntityExtractionOutput)
+class BatchEntityExtractionOutput(BaseModel):
+    samples: list[SampleEntityExtractionOutput] = Field(default_factory=list)
+
+
+entity_output_parser = PydanticOutputParser(pydantic_object=BatchEntityExtractionOutput)
 
 
 llm_prompt = ChatPromptTemplate.from_messages([
@@ -27,20 +41,28 @@ llm_prompt = ChatPromptTemplate.from_messages([
         """
         You are a strict named entity extraction assistant for materials science literature.
 
-        Your task is to extract domain entities from the given text.
+        Your task is to extract domain entities from each sample in the given sample list.
         Only extract entities whose type is included in the provided entity_schema.
 
         Rules:
         1. Return only valid JSON. Do not use Markdown. Do not add explanations.
-        2. The output must be an object with exactly one key: "entities".
-        3. Each entity must have: "type", "text", "start", "end".
-        4. "text" must be copied exactly from the original text.
-        5. "start" and "end" are character offsets in the original text. "end" is exclusive.
-        6. Do not invent entities. If uncertain, omit the entity.
-        7. Do not extract overlapping duplicate entities.
-        8. Prefer complete entity spans over partial spans.
-        9. Keep entities sorted by "start".
-        10. If no entity is found, return {{"entities": []}}.
+        2. The output must be an object with exactly one key: "samples".
+        3. Return one output item for every input sample_id.
+        4. Each output item must have: "sample_id" and "entities".
+        5. Each entity must have: "type", "text", "start", "end".
+        6. "text" must be copied exactly from that sample's original text.
+        7. "start" and "end" are character offsets in that sample's original text. "end" is exclusive.
+        8. If no entity is found for a sample, return that sample with an empty "entities" list.
+        9. Do not invent sample_id values or entities. If uncertain, omit the entity.
+        10. Do not extract overlapping duplicate entities.
+        11. Prefer complete entity spans over partial spans.
+        12. Keep entities sorted by "start" within each sample.
+        13. Never output partial entities such as {"type": "MAT"} or {"type": "DSC"}.
+        14. If you cannot provide all four fields "type", "text", "start", and "end", omit that entity completely.
+        15. If a span looks like an entity but its type is not clearly one of entity_schema, omit it.
+        16. If a span is uncertain or cannot be aligned to exact character offsets in the original text, omit it.
+        17. Do not output token-level "O" labels because this is span-based extraction.
+        18. The model must not create new labels such as UNKNOWN, OTHER, MISC, or UNK.
 
         Common materials-domain label meanings, when applicable:
         - MAT: inorganic materials, material names, chemical formulas, compounds, composites, dopants.
@@ -56,17 +78,11 @@ llm_prompt = ChatPromptTemplate.from_messages([
     ),
     HumanMessagePromptTemplate.from_template(
         """
-        sample_id:
-        {sample_id}
-
         entity_schema:
         {entity_schema}
 
-        tokens:
-        {tokens}
-
-        text:
-        {text}
+        samples:
+        {samples}
 
         You must format your output according to these instructions:
         {format_instructions}
@@ -136,12 +152,12 @@ class GraphState:
 
     # 最大迭代轮数。
     # 后续 should_continue/循环控制节点用它判断是否停止，防止伪标注训练无限循环。
-    iterations: int = 8
+    iterations: int = 6
 
     # 每轮从未标注池抽取的比例，取值范围为 (0, 1]。
     # get_unlabeled_data_node 按全量未标注池计算 ceil(total_pool_size * batch_size)。
     # 注意：这不是 DataLoader 的 batch size。
-    batch_size: float = 0.2
+    batch_size: float = 0.05
 
     # NER 输出与 primary LLM 输出之间的编辑距离比例阈值。
     # 后续相似度节点按论文公式计算 distance_ratio = edit_distance / len(reference_string)。
@@ -293,3 +309,6 @@ class GraphContext(TypedDict, total=False):
 
     # 第二大模型，仅在 NER 与第一大模型不一致时调用。
     judge_llm: BaseChatModel
+
+    # 是否打印 graph 节点运行跟踪日志，默认 True。
+    trace_enabled: bool

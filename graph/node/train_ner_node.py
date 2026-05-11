@@ -336,7 +336,7 @@ def _train_bert_bilstm_crf(
     max_length = 128
     batch_size = 8
     joint_train_epochs = 5
-    bilstm_only_epochs = 30
+    bilstm_only_epochs = 20
     word_embedding_dim = 128
     lstm_hidden_size = 256
     dropout = 0.25

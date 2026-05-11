@@ -34,7 +34,7 @@ def initialize_node(graph_state: GraphState) -> dict:
         "min_distance_ratio_threshold": 0.30,
         "max_distance_ratio_threshold": 0.80,
         "model_distance_ratio_threshold": 0.30,
-        "threshold_step": 0.05,
+        "threshold_step": 0.25,
         "processed_sample_ids": [],
         "previous_metrics": [],
         "best_metrics": {
