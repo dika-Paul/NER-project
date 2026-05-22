@@ -112,6 +112,14 @@ class InputState:
 
 
 @dataclass
+class AddTrainInputState:
+    train_path: str = field(default_factory=str)
+    valid_path: str = field(default_factory=str)
+    unlabeled_pool_path: str = field(default_factory=str)
+    paper_batch_size: int = 100
+
+
+@dataclass
 class OutputState:
     best_model_path: str = field(default_factory=str)
     previous_metrics: list[dict[str, float]] = field(default_factory=list)
@@ -159,6 +167,10 @@ class GraphState:
     # 注意：这不是 DataLoader 的 batch size。
     batch_size: float = 0.25
 
+    # add_train_graph 每轮从 OpenAlex Excel 池中顺序取出的论文篇数。
+    # 论文会先被切分为句子级 current_batch 样本，再进入现有 NER/LLM 一致性筛选流程。
+    paper_batch_size: int = 100
+
     # NER 输出与 primary LLM 输出之间的编辑距离比例阈值。
     # 后续相似度节点按论文公式计算 distance_ratio = edit_distance / len(reference_string)。
     # distance_ratio <= distance_ratio_threshold 时，样本可视为高置信候选。
@@ -196,6 +208,13 @@ class GraphState:
     # get_unlabeled_data_node 只读取该列表；add_train_data_node 在样本实际写入训练集后追加。
     # 结构：[sample_id, ...]
     processed_sample_ids: list[str] = field(default_factory=list)
+
+    # add_train_graph 已经从 Excel 池中取出处理过的论文 id。
+    # 论文级 id 无论句子伪标签是否最终被接受，都在取批次时标记，保证 500 篇顺序覆盖不重复。
+    processed_paper_ids: list[str] = field(default_factory=list)
+
+    # add_train_graph 的 Excel 论文总数，用于计算默认训练/追加轮数与终止条件。
+    total_paper_count: int = 0
 
     # 当前轮最佳 NER 模型对 current_batch 的 BIO 预测结果。
     # model_predict_node 写入；BIO2dict_node 读取。

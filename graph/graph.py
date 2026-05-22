@@ -3,14 +3,22 @@ from typing import Literal
 from langgraph.graph import END, START, StateGraph
 from langgraph.runtime import Runtime
 
-from graph.graph_state import GraphContext, GraphState, InputState, OutputState
+from graph.graph_state import (
+    AddTrainInputState,
+    GraphContext,
+    GraphState,
+    InputState,
+    OutputState,
+)
 from graph.node.add_train_data_node import add_train_data_node
 from graph.node.decision_node import decision_node
 from graph.node.distance_compute_node import (
     judge_res_distance_compute_node,
     labeled_res_distance_compute_node,
 )
+from graph.node.get_excel_batch_node import get_excel_batch_node
 from graph.node.get_unlabeled_data_node import get_unlabeled_data_node
+from graph.node.initialize_add_train_node import initialize_add_train_node
 from graph.node.initialize_node import initialize_node
 from graph.node.iteration_update import iteration_update_node
 from graph.node.llm_predict_node import (
@@ -60,6 +68,28 @@ def should_continue_training(
 
     if is_trace_enabled(runtime):
         print("[GraphRoute] should_continue_training -> end", flush=True)
+    return "end"
+
+
+def should_get_excel_batch(
+    graph_state: GraphState,
+    runtime: Runtime[GraphContext],
+) -> Literal["get_excel_batch", "end"]:
+    has_training_iteration_left = graph_state.iteration < max(
+        graph_state.iterations - 1,
+        0,
+    )
+    has_unprocessed_papers = (
+        len(graph_state.processed_paper_ids) < graph_state.total_paper_count
+    )
+
+    if has_training_iteration_left and has_unprocessed_papers:
+        if is_trace_enabled(runtime):
+            print("[GraphRoute] should_get_excel_batch -> get_excel_batch", flush=True)
+        return "get_excel_batch"
+
+    if is_trace_enabled(runtime):
+        print("[GraphRoute] should_get_excel_batch -> end", flush=True)
     return "end"
 
 
@@ -138,5 +168,87 @@ def build_train_graph():
             "end": END,
         },
     )
+
+    return graph_builder.compile()
+
+
+def build_add_train_graph():
+    graph_builder = StateGraph(
+        GraphState,
+        context_schema=GraphContext,
+        input_schema=AddTrainInputState,
+        output_schema=OutputState,
+    )
+
+    graph_builder.add_node(
+        "initialize_add_train",
+        trace_node("initialize_add_train", initialize_add_train_node),
+    )
+    graph_builder.add_node("train_ner", trace_node("train_ner", train_ner_node))
+    graph_builder.add_node("update_model", trace_node("update_model", update_model_node))
+    graph_builder.add_node(
+        "get_excel_batch",
+        trace_node("get_excel_batch", get_excel_batch_node),
+    )
+    graph_builder.add_node("model_predict", trace_node("model_predict", model_predict_node))
+    graph_builder.add_node("bio_to_dict", trace_node("bio_to_dict", BIO2dict_node))
+    graph_builder.add_node("llm_predict", trace_node("llm_predict", llm_predict_node))
+    graph_builder.add_node(
+        "primary_span_to_dict",
+        trace_node("primary_span_to_dict", primary_span2dict_node),
+    )
+    graph_builder.add_node(
+        "compute_ner_llm_distance",
+        trace_node("compute_ner_llm_distance", labeled_res_distance_compute_node),
+    )
+    graph_builder.add_node(
+        "judge_llm_predict",
+        trace_node("judge_llm_predict", judge_llm_predict_node),
+    )
+    graph_builder.add_node(
+        "judge_span_to_dict",
+        trace_node("judge_span_to_dict", judge_span2dict_node),
+    )
+    graph_builder.add_node(
+        "compute_judge_distance",
+        trace_node("compute_judge_distance", judge_res_distance_compute_node),
+    )
+    graph_builder.add_node("decision", trace_node("decision", decision_node))
+    graph_builder.add_node("add_train_data", trace_node("add_train_data", add_train_data_node))
+    graph_builder.add_node(
+        "iteration_update",
+        trace_node("iteration_update", iteration_update_node),
+    )
+
+    graph_builder.add_edge(START, "initialize_add_train")
+    graph_builder.add_edge("initialize_add_train", "train_ner")
+    graph_builder.add_edge("train_ner", "update_model")
+    graph_builder.add_conditional_edges(
+        "update_model",
+        should_get_excel_batch,
+        {
+            "get_excel_batch": "get_excel_batch",
+            "end": END,
+        },
+    )
+    graph_builder.add_edge("get_excel_batch", "model_predict")
+    graph_builder.add_edge("model_predict", "bio_to_dict")
+    graph_builder.add_edge("get_excel_batch", "llm_predict")
+    graph_builder.add_edge("llm_predict", "primary_span_to_dict")
+    graph_builder.add_edge(["bio_to_dict", "primary_span_to_dict"], "compute_ner_llm_distance")
+    graph_builder.add_conditional_edges(
+        "compute_ner_llm_distance",
+        should_judge,
+        {
+            "judge_llm_predict": "judge_llm_predict",
+            "decision": "decision",
+        },
+    )
+    graph_builder.add_edge("judge_llm_predict", "judge_span_to_dict")
+    graph_builder.add_edge("judge_span_to_dict", "compute_judge_distance")
+    graph_builder.add_edge("compute_judge_distance", "decision")
+    graph_builder.add_edge("decision", "add_train_data")
+    graph_builder.add_edge("add_train_data", "iteration_update")
+    graph_builder.add_edge("iteration_update", "train_ner")
 
     return graph_builder.compile()

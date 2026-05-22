@@ -159,7 +159,6 @@ def evaluate_bert_bilstm_crf(model, dataloader, id2label, device):
     for batch in dataloader:
         input_ids = batch["input_ids"].to(device)
         attention_mask = batch["attention_mask"].to(device)
-        word_input_ids = batch["word_input_ids"].to(device)
         word_attention_mask = batch["word_attention_mask"].to(device)
         first_subword_positions = batch["first_subword_positions"].to(device)
         labels = batch["labels"].to(device)
@@ -173,7 +172,6 @@ def evaluate_bert_bilstm_crf(model, dataloader, id2label, device):
         outputs = model(
             input_ids=input_ids,
             attention_mask=attention_mask,
-            word_input_ids=word_input_ids,
             word_attention_mask=word_attention_mask,
             first_subword_positions=first_subword_positions,
             labels=labels,

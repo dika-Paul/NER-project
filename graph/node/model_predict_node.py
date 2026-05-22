@@ -10,7 +10,9 @@ from models.bert_bilstm_crf import BertBiLstmCrfNER
 from models.bert_softmax import BertSoftmaxNER
 from models.bilstm_crf import BiLSTM_CRF
 from models.matscibert_softmax import MatSciBertSoftmaxNER
-from utils.bert_bilstm_crf.data_utils import build_collate_fn as build_parallel_collate_fn
+from utils.bert_bilstm_crf.data_utils import (
+    build_collate_fn as build_bert_bilstm_crf_collate_fn,
+)
 
 
 PREDICT_BATCH_SIZE = 16
@@ -102,6 +104,15 @@ def _checkpoint_model_type(checkpoint: dict[str, Any], checkpoint_path: Path) ->
 
     if "model" not in checkpoint:
         raise ValueError("checkpoint must contain model or model_state_dict.")
+
+    model_type = checkpoint.get("model_type")
+    if model_type in {
+        "bilstm_crf",
+        "bert_bilstm_crf",
+        "bert_softmax",
+        "matscibert_softmax",
+    }:
+        return str(model_type)
 
     if "word2idx" in checkpoint:
         return "bert_bilstm_crf"
@@ -280,34 +291,30 @@ def _predict_bert_bilstm_crf(
     checkpoint: dict[str, Any],
     current_batch: dict[str, dict[str, Any]],
 ) -> dict[str, list[tuple[str, str]]]:
-    if "word2idx" not in checkpoint:
-        raise ValueError("BERT-BiLSTM-CRF checkpoint must contain word2idx.")
+    if checkpoint.get("architecture") != "tokenizer_bert_bilstm_crf":
+        raise ValueError(
+            "This BERT-BiLSTM-CRF checkpoint is not compatible with the "
+            "sequential Tokenizer -> BERT -> BiLSTM -> CRF architecture. "
+            "Please retrain and save a new bert_bilstm_crf checkpoint."
+        )
 
-    word2idx = checkpoint["word2idx"]
     tag2idx = checkpoint["tag2idx"]
     idx2tag = _idx2tag_from_checkpoint(checkpoint)
     model_name = checkpoint.get("model_name", "bert-base-cased")
     max_length = checkpoint.get("max_length", 128)
+    bert_hidden_size = checkpoint.get("bert_hidden_size", 768)
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=True)
-    collate_fn = build_parallel_collate_fn(
-        tokenizer=tokenizer,
-        label2id=tag2idx,
-        word2idx=word2idx,
-        max_length=max_length,
-    )
 
     model = BertBiLstmCrfNER(
         model_name=model_name,
         num_labels=len(tag2idx),
-        word_vocab_size=len(word2idx),
-        word_embedding_dim=checkpoint.get("word_embedding_dim", 128),
         lstm_hidden_size=checkpoint.get("lstm_hidden_size", 256),
         dropout=checkpoint.get("dropout", 0.25),
-        word_pad_idx=word2idx["<PAD>"],
         id2label=idx2tag,
         label2id=tag2idx,
+        expected_bert_hidden_size=bert_hidden_size,
     ).to(device)
     model.load_state_dict(checkpoint["model"])
     model.eval()
@@ -324,10 +331,9 @@ def _predict_bert_bilstm_crf(
         model_batch["tokens"] = [list(tokens) for tokens in token_sequences]
         return model_batch
 
-    collate_fn_for_model = build_parallel_collate_fn(
+    collate_fn_for_model = build_bert_bilstm_crf_collate_fn(
         tokenizer=tokenizer,
         label2id=tag2idx,
-        word2idx=word2idx,
         max_length=max_length,
     )
     dataloader = _prediction_loader(
@@ -339,7 +345,6 @@ def _predict_bert_bilstm_crf(
         for batch in dataloader:
             input_ids = batch["input_ids"].to(device)
             attention_mask = batch["attention_mask"].to(device)
-            word_input_ids = batch["word_input_ids"].to(device)
             word_attention_mask = batch["word_attention_mask"].to(device)
             first_subword_positions = batch["first_subword_positions"].to(device)
             token_type_ids = batch.get("token_type_ids")
@@ -349,7 +354,6 @@ def _predict_bert_bilstm_crf(
             outputs = model(
                 input_ids=input_ids,
                 attention_mask=attention_mask,
-                word_input_ids=word_input_ids,
                 word_attention_mask=word_attention_mask,
                 first_subword_positions=first_subword_positions,
                 token_type_ids=token_type_ids,

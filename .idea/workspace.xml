@@ -6,14 +6,19 @@
   <component name="ChangeListManager">
     <list default="true" id="2f758aa7-4d7d-42ab-81f1-fde8f131d485" name="更改" comment="修改bug">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/evaluate.py" beforeDir="false" afterPath="$PROJECT_DIR$/evaluate.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/graph/graph.py" beforeDir="false" afterPath="$PROJECT_DIR$/graph/graph.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/graph/graph_state.py" beforeDir="false" afterPath="$PROJECT_DIR$/graph/graph_state.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/graph/node/add_train_data_node.py" beforeDir="false" afterPath="$PROJECT_DIR$/graph/node/add_train_data_node.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/graph/node/get_unlabeled_data_node.py" beforeDir="false" afterPath="$PROJECT_DIR$/graph/node/get_unlabeled_data_node.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/graph/node/initialize_node.py" beforeDir="false" afterPath="$PROJECT_DIR$/graph/node/initialize_node.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/graph/node/llm_predict_node.py" beforeDir="false" afterPath="$PROJECT_DIR$/graph/node/llm_predict_node.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/graph/test.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/graph/test.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/graph/node/model_predict_node.py" beforeDir="false" afterPath="$PROJECT_DIR$/graph/node/model_predict_node.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/graph/node/train_ner_node.py" beforeDir="false" afterPath="$PROJECT_DIR$/graph/node/train_ner_node.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/models/bert_bilstm_crf.py" beforeDir="false" afterPath="$PROJECT_DIR$/models/bert_bilstm_crf.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/test/test_bert_bilstm_crf.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/test/test_bert_bilstm_crf.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test/test_bert_softmax.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/test/test_bert_softmax.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test/test_matscibert_softmax.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/test/test_matscibert_softmax.ipynb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/train/train_bert-bilstm-crf.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/train/train_bert-bilstm-crf.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/train/train_bert-softmax.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/train/train_bert-softmax.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/train/train_matscibert-softmax.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/train/train_matscibert-softmax.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/utils/bert_bilstm_crf/data_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/bert_bilstm_crf/data_utils.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -21,8 +26,7 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="EmbeddingIndexingInfo">
-    <option name="cachedIndexableFilesCount" value="54" />
-    <option name="fileBasedEmbeddingIndicesEnabled" value="true" />
+    <option name="cachedIndexableFilesCount" value="70" />
   </component>
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
@@ -131,8 +135,8 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-js-predefined-d6986cc7102b-31caf2ab9e3c-JavaScript-PY-261.23567.174" />
-        <option value="bundled-python-sdk-024ed6589d45-c2ffad84badb-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-261.23567.174" />
+        <option value="bundled-js-predefined-d6986cc7102b-31caf2ab9e3c-JavaScript-PY-261.24374.152" />
+        <option value="bundled-python-sdk-c59985aa861c-c2ffad84badb-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-261.24374.152" />
       </set>
     </attachedChunks>
   </component>
@@ -181,7 +185,17 @@
       <workItem from="1778306986198" duration="25753000" />
       <workItem from="1778347094784" duration="8537000" />
       <workItem from="1778388928227" duration="47535000" />
-      <workItem from="1778440587547" duration="16658000" />
+      <workItem from="1778440587547" duration="20882000" />
+      <workItem from="1778497406909" duration="725000" />
+      <workItem from="1778663475267" duration="7064000" />
+      <workItem from="1778746093877" duration="23439000" />
+      <workItem from="1778844415965" duration="14852000" />
+      <workItem from="1779028469167" duration="32000" />
+      <workItem from="1779028510465" duration="13000" />
+      <workItem from="1779093498344" duration="1269000" />
+      <workItem from="1779195705877" duration="2000" />
+      <workItem from="1779453712408" duration="3000" />
+      <workItem from="1779455267147" duration="128000" />
     </task>
     <task id="LOCAL-00001" summary="毕业设计NER算法设计存档">
       <option name="closed" value="true" />
@@ -311,7 +325,15 @@
       <option name="project" value="LOCAL" />
       <updated>1778471117058</updated>
     </task>
-    <option name="localTasksCounter" value="17" />
+    <task id="LOCAL-00017" summary="修改bug">
+      <option name="closed" value="true" />
+      <created>1778487163777</created>
+      <option name="number" value="00017" />
+      <option name="presentableId" value="LOCAL-00017" />
+      <option name="project" value="LOCAL" />
+      <updated>1778487163777</updated>
+    </task>
+    <option name="localTasksCounter" value="18" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">

@@ -4,9 +4,8 @@ from torch.utils.data import Dataset
 
 def read_conll_4(path):
     """
-    读取至少包含四列的 CoNLL 风格文件。
-
-    默认取第一列作为 token，最后一列作为标签。
+    Read a CoNLL-style file with at least four columns.
+    The first column is treated as the token and the last column as the label.
     """
     sentences = []
     tags = []
@@ -43,9 +42,7 @@ def read_conll_4(path):
 
 
 def read_conll_2(path):
-    """
-    读取两列格式的 CoNLL 风格文件：token 和 label。
-    """
+    """Read a two-column CoNLL-style file: token and label."""
     sentences = []
     tags = []
 
@@ -80,7 +77,8 @@ def read_conll_2(path):
 
 def build_vocab(sentences, min_freq=1):
     """
-    为 BiLSTM 分支构建词表。
+    Legacy helper kept for older notebooks/checkpoints. The sequential
+    BERT-BiLSTM-CRF model no longer uses a word-level vocabulary.
     """
     word_count = {}
     for sentence in sentences:
@@ -100,9 +98,7 @@ def build_vocab(sentences, min_freq=1):
 
 
 def build_tag2idx(tags_list):
-    """
-    根据标签序列构建标签词表。
-    """
+    """Build label-to-id and id-to-label mappings."""
     tag2idx = {}
 
     for tags in tags_list:
@@ -116,7 +112,7 @@ def build_tag2idx(tags_list):
 
 def encode_sentence(sentence, word2idx):
     """
-    将 token 序列转换为 BiLSTM 分支使用的词 id 序列。
+    Legacy helper kept for older code paths. The sequential model does not call it.
     """
     unk_id = word2idx["<UNK>"]
     return [word2idx.get(word, unk_id) for word in sentence]
@@ -124,10 +120,8 @@ def encode_sentence(sentence, word2idx):
 
 class NERDataset(Dataset):
     """
-    保存原始 token 序列和标签序列。
-
-    这里不提前编码，统一放到 collate_fn 中处理，
-    因为 BERT 分支需要做词级标签与 subword 分词结果的对齐。
+    Store raw token and label sequences. Tokenization and label alignment happen
+    inside collate_fn so that subword truncation stays synchronized with labels.
     """
 
     def __init__(self, sentences, tags):
@@ -141,21 +135,19 @@ class NERDataset(Dataset):
         return self.sentences[idx], self.tags[idx]
 
 
-def build_collate_fn(tokenizer, label2id, word2idx, max_length=128):
+def build_collate_fn(tokenizer, label2id, max_length=128):
     """
-    为并行 BERT + BiLSTM + CRF 模型构造 collate_fn。
+    Build a collate_fn for Tokenizer -> BERT -> BiLSTM -> CRF.
 
-    返回的主要张量包括：
-        input_ids / attention_mask / token_type_ids：
-            BERT 分支使用的 subword 级输入
-        word_input_ids：
-            BiLSTM 分支使用的词级 id
-        first_subword_positions：
-            每个保留词在 input_ids 中首个 subword 的位置
-        word_attention_mask：
-            用于 BiLSTM padding 和 CRF 解码的词级 mask
-        labels：
-            与融合后词级输出对齐的标签
+    Returned tensors:
+        input_ids / attention_mask / token_type_ids:
+            Subword-level BERT inputs from the tokenizer.
+        first_subword_positions:
+            Word-level positions pointing to the first subword of each token.
+        word_attention_mask:
+            Word-level mask used by BiLSTM packing and CRF decoding.
+        labels:
+            Word-level labels aligned with first_subword_positions.
     """
 
     def collate_fn(batch):
@@ -192,16 +184,14 @@ def build_collate_fn(tokenizer, label2id, word2idx, max_length=128):
 
             if valid_word_count == 0:
                 raise ValueError(
-                    "当前 max_length 截断后，句子里没有保留下任何词。"
-                    "请增大并行模型的 max_length。"
+                    "No tokens remain after max_length truncation. "
+                    "Increase max_length for the BERT-BiLSTM-CRF model."
                 )
 
-            kept_sentence = list(sentence[:valid_word_count])
             kept_tags = list(tags[:valid_word_count])
 
             encoded_examples.append(
                 {
-                    "word_input_ids": encode_sentence(kept_sentence, word2idx),
                     "labels": [label2id[tag] for tag in kept_tags],
                     "first_subword_positions": first_subword_positions,
                     "word_count": valid_word_count,
@@ -211,7 +201,6 @@ def build_collate_fn(tokenizer, label2id, word2idx, max_length=128):
 
         batch_size = len(encoded_examples)
 
-        word_input_ids = torch.zeros((batch_size, max_words), dtype=torch.long)
         labels = torch.zeros((batch_size, max_words), dtype=torch.long)
         first_subword_positions = torch.zeros((batch_size, max_words), dtype=torch.long)
         word_attention_mask = torch.zeros((batch_size, max_words), dtype=torch.long)
@@ -219,9 +208,6 @@ def build_collate_fn(tokenizer, label2id, word2idx, max_length=128):
         for i, example in enumerate(encoded_examples):
             word_count = example["word_count"]
 
-            word_input_ids[i, :word_count] = torch.tensor(
-                example["word_input_ids"], dtype=torch.long
-            )
             labels[i, :word_count] = torch.tensor(example["labels"], dtype=torch.long)
             first_subword_positions[i, :word_count] = torch.tensor(
                 example["first_subword_positions"], dtype=torch.long
@@ -231,7 +217,6 @@ def build_collate_fn(tokenizer, label2id, word2idx, max_length=128):
         batch_dict = {
             "input_ids": encodings["input_ids"],
             "attention_mask": encodings["attention_mask"],
-            "word_input_ids": word_input_ids,
             "word_attention_mask": word_attention_mask,
             "first_subword_positions": first_subword_positions,
             "labels": labels,

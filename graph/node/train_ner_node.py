@@ -28,7 +28,6 @@ from utils.bert_bilstm_crf.data_utils import (
     NERDataset as BertBiLstmCrfNERDataset,
     build_collate_fn as build_bert_bilstm_crf_collate_fn,
     build_tag2idx as build_bert_bilstm_crf_tag2idx,
-    build_vocab as build_bert_bilstm_crf_vocab,
     read_conll_2 as read_bert_bilstm_crf_conll_2,
 )
 from utils.bilstm_crf.data_utils import (
@@ -335,10 +334,11 @@ def _train_bert_bilstm_crf(
     model_name = "bert-base-cased"
     max_length = 128
     batch_size = 8
-    joint_train_epochs = 5
-    bilstm_only_epochs = 20
-    word_embedding_dim = 128
+    joint_train_epochs = 8
+    bilstm_only_epochs = 10
     lstm_hidden_size = 256
+    bert_hidden_size = 768
+    bilstm_output_size = lstm_hidden_size * 2
     dropout = 0.25
     bert_learning_rate = 3e-5
     other_learning_rate = 1e-3
@@ -351,7 +351,6 @@ def _train_bert_bilstm_crf(
     valid_sentences, valid_tags = read_bert_bilstm_crf_conll_2(valid_path)
     _ensure_non_empty_dataset(train_sentences, valid_sentences)
 
-    word2idx = build_bert_bilstm_crf_vocab(train_sentences)
     tag2idx, idx2tag = build_bert_bilstm_crf_tag2idx(train_tags)
 
     train_dataset = BertBiLstmCrfNERDataset(train_sentences, train_tags)
@@ -361,7 +360,6 @@ def _train_bert_bilstm_crf(
     collate_fn = build_bert_bilstm_crf_collate_fn(
         tokenizer=tokenizer,
         label2id=tag2idx,
-        word2idx=word2idx,
         max_length=max_length,
     )
 
@@ -381,13 +379,11 @@ def _train_bert_bilstm_crf(
     model = BertBiLstmCrfNER(
         model_name=model_name,
         num_labels=len(tag2idx),
-        word_vocab_size=len(word2idx),
-        word_embedding_dim=word_embedding_dim,
         lstm_hidden_size=lstm_hidden_size,
         dropout=dropout,
-        word_pad_idx=word2idx["<PAD>"],
         id2label=idx2tag,
         label2id=tag2idx,
+        expected_bert_hidden_size=bert_hidden_size,
     ).to(device)
 
     def build_optimizer_and_scheduler(
@@ -403,7 +399,6 @@ def _train_bert_bilstm_crf(
 
         param_groups.extend(
             [
-                {"params": model.word_embeddings.parameters(), "lr": other_learning_rate},
                 {"params": model.bilstm.parameters(), "lr": other_learning_rate},
                 {"params": model.classifier.parameters(), "lr": other_learning_rate},
                 {"params": model.crf.parameters(), "lr": other_learning_rate},
@@ -450,7 +445,6 @@ def _train_bert_bilstm_crf(
         for batch in train_loader:
             input_ids = batch["input_ids"].to(device)
             attention_mask = batch["attention_mask"].to(device)
-            word_input_ids = batch["word_input_ids"].to(device)
             word_attention_mask = batch["word_attention_mask"].to(device)
             first_subword_positions = batch["first_subword_positions"].to(device)
             labels = batch["labels"].to(device)
@@ -463,7 +457,6 @@ def _train_bert_bilstm_crf(
             outputs = model(
                 input_ids=input_ids,
                 attention_mask=attention_mask,
-                word_input_ids=word_input_ids,
                 word_attention_mask=word_attention_mask,
                 first_subword_positions=first_subword_positions,
                 labels=labels,
@@ -503,13 +496,15 @@ def _train_bert_bilstm_crf(
             torch.save(
                 {
                     "model": model.state_dict(),
-                    "word2idx": word2idx,
+                    "model_type": "bert_bilstm_crf",
+                    "architecture": "tokenizer_bert_bilstm_crf",
                     "tag2idx": tag2idx,
                     "idx2tag": idx2tag,
                     "model_name": model_name,
                     "max_length": max_length,
-                    "word_embedding_dim": word_embedding_dim,
+                    "bert_hidden_size": bert_hidden_size,
                     "lstm_hidden_size": lstm_hidden_size,
+                    "bilstm_output_size": bilstm_output_size,
                     "dropout": dropout,
                     "joint_train_epochs": joint_train_epochs,
                     "bilstm_only_epochs": bilstm_only_epochs,
